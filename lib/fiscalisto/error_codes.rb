@@ -1,0 +1,662 @@
+# frozen_string_literal: true
+
+# Generado por `bun run openapi` desde la lista de errores de la API: no lo edite.
+
+module Fiscalisto
+  # Los códigos de error de la API, para comparar +e.code+ sin escribir el texto:
+  # +rescue Fiscalisto::Error => e; raise unless e.code == Fiscalisto::ErrorCode::INVOICE_REJECTED+.
+  # Vea https://fiscalisto.com/docs/api/errores.
+  module ErrorCode
+    # Esa cuenta no está en el catálogo del emisor: véalo con GET /v1/accounting/accounts o agréguela con POST /v1/accounting/accounts.
+    ACCOUNT_MISSING = "account_missing"
+
+    # Suspendimos la API de la empresa (todas sus llaves, o solo las de producción) por un uso que rompe los términos del servicio. El mensaje dice por qué; escríbanos a soporte@fiscalisto.com para reactivarla.
+    ACCOUNT_SUSPENDED = "account_suspended"
+
+    # La respuesta armada se guarda 30 días. Pídala otra vez con POST /v1/sat_reviews/{id}/answer.
+    ANSWER_EXPIRED = "answer_expired"
+
+    # Esta revisión del SAT aún no tiene respuesta armada. Pídala con POST /v1/sat_reviews/{id}/answer.
+    ANSWER_MISSING = "answer_missing"
+
+    # La respuesta aún se arma (answer.status processing) o falló (failed). Consulte GET /v1/sat_reviews/{id}; si falló, pídala otra vez con POST /v1/sat_reviews/{id}/answer.
+    ANSWER_NOT_READY = "answer_not_ready"
+
+    # Ya se está armando la respuesta de esta revisión del SAT. Espere a que answer.status sea completed (GET /v1/sat_reviews/{id}).
+    ANSWER_RUNNING = "answer_running"
+
+    # La cuenta ya hizo 30 llaves por la API (creadas o cambiadas) en la última hora. Espere (Retry-After) o escríbanos si necesita más.
+    API_KEY_CREATION_LIMIT = "api_key_creation_limit"
+
+    # La llave que se crea o se edita tendría más que la que hace la solicitud: un recurso con más acceso, otro emisor, IP fuera de las suyas o un vencimiento después del suyo. Una llave solo da lo que tiene. param dice qué campo.
+    API_KEY_ESCALATION = "api_key_escalation"
+
+    # La llave venció (eligió cuándo al crearla, o se cambió con «Cambiar llave» y pasó su plazo). El mensaje dice cuándo y expired_at lo trae en ISO 8601. Cree otra en Desarrolladores › Llaves; antes de que venza, «Cambiar llave» le da la nueva sin cortar el servicio.
+    API_KEY_EXPIRED = "api_key_expired"
+
+    # La llave no se pudo crear, cambiar o revocar: ya hay 50 en el modo, el vencimiento no está entre 1 hora y 3 años, una IP no es válida, no tiene ningún recurso, o ya se cambió por otra. El mensaje dice cuál.
+    API_KEY_REJECTED = "api_key_rejected"
+
+    # La llave existió y se revocó: en Desarrolladores › Llaves, al borrar su entorno de prueba, o porque GitHub (u otro buscador de secretos) la encontró publicada. El mensaje dice cuándo y quién, y revoked_at lo trae en ISO 8601. Use otra llave; si se publicó, cree una nueva y guárdela como secreto de su servidor.
+    API_KEY_REVOKED = "api_key_revoked"
+
+    # Solo una llave con permisos por recurso que tenga api_keys (lectura para listar y ver, escritura para crear, cambiar y revocar) usa /v1/api_keys. Una llave con todos los permisos o de solo lectura no lo incluye: se da a propósito, en Desarrolladores › Llaves.
+    API_KEYS_PERMISSION_REQUIRED = "api_keys_permission_required"
+
+    # No existe esa versión de la API (en Fiscalisto-Version o api_version). El mensaje dice cuáles hay; vea Versiones.
+    API_VERSION_INVALID = "api_version_invalid"
+
+    # El activo fijo ya se vendió o se dio de baja: deshaga esa baja con DELETE /v1/accounting/fixed_assets/{id}/disposal si fue un error.
+    ASSET_ALREADY_DISPOSED = "asset_already_disposed"
+
+    # El activo llegó con su CFDI y no se borra: véndalo o dele de baja con POST /v1/accounting/fixed_assets/{id}/dispose.
+    ASSET_FROM_CFDI = "asset_from_cfdi"
+
+    # El activo fijo no está dado de baja: no hay baja que deshacer.
+    ASSET_NOT_DISPOSED = "asset_not_disposed"
+
+    # Asistencia no lo permite: el mensaje dice por qué (una hora en el futuro o de hace más de 400 días, un empleado con fecha de baja, un periodo de más de 92 días, una marca ya quitada).
+    ATTENDANCE_INVALID = "attendance_invalid"
+
+    # Ese movimiento no va a la contabilidad así: un depósito tiene que estar clasificado en la conciliación como préstamo, traspaso, devolución o intereses (los demás los explica su factura), y un retiro marcado como pago de facturas o sin registrar vuelve primero a pending.
+    BANK_MOVEMENT_NOT_BOOKABLE = "bank_movement_not_bookable"
+
+    # Ese movimiento de banco no tiene póliza: no hay nada que quitar.
+    BANK_MOVEMENT_NOT_POSTED = "bank_movement_not_posted"
+
+    # Ese movimiento de banco ya tiene su póliza: quítela con DELETE /v1/accounting/bank_movements/{id}/post para registrarlo con otra cuenta.
+    BANK_MOVEMENT_POSTED = "bank_movement_posted"
+
+    # El depósito no se puede conciliar, clasificar o reabrir así (ya está conciliado, las facturas son de otro cliente o una está cancelada…). El mensaje dice por qué.
+    BANK_TRANSACTION_INVALID = "bank_transaction_invalid"
+
+    # Una factura del lote no pasa la revisión; param dice cuál (invoices.3.items.0.unit_price). Ninguna del lote se timbró.
+    BATCH_INVALID = "batch_invalid"
+
+    # El cuerpo pasa de 10 MB. Divida el trabajo en varios lotes.
+    BODY_TOO_LARGE = "body_too_large"
+
+    # La sucursal ya facturó, así que no se borra: archívela con archived: true y sus facturas la siguen nombrando.
+    BRANCH_HAS_INVOICES = "branch_has_invoices"
+
+    # La API se llama desde su servidor, nunca desde el navegador: la llave secreta quedaría expuesta.
+    BROWSER_NOT_SUPPORTED = "browser_not_supported"
+
+    # Mezcló las dos formas de emitir un recibo de nómina: POST /v1/payroll_receipts calcula el recibo con los datos del empleado (emp_…); POST /v1/payroll_receipts/external timbra los importes que calculó su sistema. Use el endpoint que corresponde.
+    CALCULATION_MODE_AMBIGUOUS = "calculation_mode_ambiguous"
+
+    # El SAT no aceptó la solicitud de cancelación; message dice por qué.
+    CANCELLATION_FAILED = "cancellation_failed"
+
+    # El SAT todavía no registra el comprobante: tarda unos minutos después de timbrarlo (en pruebas, hasta 5). No se canceló ni costó nada: repita la misma solicitud después de Retry-After.
+    CANCELLATION_TOO_EARLY = "cancellation_too_early"
+
+    # El catálogo del SAT no respondió (503). Reintente en unos segundos.
+    CATALOG_UNAVAILABLE = "catalog_unavailable"
+
+    # El CSD no sirve: no es un certificado de sello (es una e.firma), está vencido, el .key no corresponde o la contraseña no abre la llave.
+    CERTIFICATE_INVALID = "certificate_invalid"
+
+    # Suba primero el CSD del emisor; después firme el contrato con su e.firma.
+    CERTIFICATE_REQUIRED = "certificate_required"
+
+    # No se pudo conectar con la API (connection_error).
+    CONNECTION_FAILED = "connection_failed"
+
+    # El emisor ya tiene un centro de costo con ese nombre (sin importar mayúsculas). Si está archivado, restáurelo con archived: false.
+    COST_CENTER_EXISTS = "cost_center_exists"
+
+    # El emisor llegó a 500 centros de costo: archive o borre los que ya no use.
+    COST_CENTER_LIMIT = "cost_center_limit"
+
+    # Ya hay un cliente con ese RFC en el catálogo del emisor (o un producto con ese SKU). Para un cliente, customer es su id (cus_…): úselo, o cámbielo con POST /v1/customers/{id}.
+    CUSTOMER_EXISTS = "customer_exists"
+
+    # Público en general (XAXX010101000) y extranjeros (XEXX010101000) comparten RFC: GET /v1/customers/{id}/payment_behavior no aplica a ellos.
+    CUSTOMER_GENERIC_TAX_ID = "customer_generic_tax_id"
+
+    # Llegó al tope del día de algo que no se paga con timbres: comprobantes en pruebas (1,000), RFC revisados en las listas del SAT o constancias consultadas. Retry-After dice cuántos segundos faltan para la medianoche de la Ciudad de México.
+    DAILY_LIMIT = "daily_limit"
+
+    # El cliente ya mandó sus datos con esa liga: una solicitud completada no se cancela.
+    DATA_REQUEST_COMPLETED = "data_request_completed"
+
+    # El mes no tiene pagos a proveedores: esa DIOT se presenta sin operaciones desde el portal del SAT.
+    DIOT_EMPTY = "diot_empty"
+
+    # El borrador espera la aprobación de un administrador en Fiscalisto y se timbra cuando la dé. Cambiarlo con POST /v1/invoices/{id} retira la solicitud.
+    DRAFT_AWAITING_APPROVAL = "draft_awaiting_approval"
+
+    # El borrador (hecho en la app o con draft: true) no está completo para timbrarse. Complételo con POST /v1/invoices/{id}, con la factura completa.
+    DRAFT_INCOMPLETE = "draft_incomplete"
+
+    # La e.firma no sirve: no es una e.firma (es un CSD), es de otro RFC, está vencida o la contraseña no abre la llave.
+    EFIRMA_INVALID = "efirma_invalid"
+
+    # Para pedirle al SAT las facturas de un emisor en producción, guarde antes su e.firma: POST /v1/issuers/{id}/efirma con keep_for_downloads: true. También si la guardada venció.
+    EFIRMA_REQUIRED = "efirma_required"
+
+    # No se pudo mandar el correo; lo demás sí se hizo: el comprobante está timbrado o la cotización quedó enviada (su url funciona). Repita el envío con su ruta /send.
+    EMAIL_FAILED = "email_failed"
+
+    # Ese webhook está apagado, así que no se le puede reenviar un evento. Enciéndalo con disabled: false y reenvíe.
+    ENDPOINT_DISABLED = "endpoint_disabled"
+
+    # Ya hay un webhook con esa dirección en este modo; el mensaje dice cuál. Cámbielo en vez de crear otro.
+    ENDPOINT_EXISTS = "endpoint_exists"
+
+    # La cuenta llegó al máximo de webhooks en este modo.
+    ENDPOINT_LIMIT = "endpoint_limit"
+
+    # La póliza no cuadra o un renglón está mal: los cargos tienen que sumar lo mismo que los abonos, y cada renglón lleva un cargo o un abono, no los dos. El mensaje dice las sumas.
+    ENTRY_UNBALANCED = "entry_unbalanced"
+
+    # Un campo de expand[] no existe en la respuesta, no es el id de otro objeto, o se pidieron demasiados (hasta 10 campos, 4 niveles). Vea Expandir objetos.
+    EXPAND_INVALID = "expand_invalid"
+
+    # Viáticos y gastos no lo permite en ese momento: el mensaje dice por qué (un gasto con errores al enviarla, un reembolso antes de aprobarla, aprobar lo que usted mismo envió).
+    EXPENSE_REPORT_INVALID = "expense_report_invalid"
+
+    # Ninguna factura del emisor coincide con el periodo y los filtros de POST /v1/exports: no se generó nada.
+    EXPORT_EMPTY = "export_empty"
+
+    # Los archivos de una exportación se guardan 30 días. Pídala otra vez con POST /v1/exports.
+    EXPORT_EXPIRED = "export_expired"
+
+    # Ya hay una exportación del mismo formato generándose en la empresa. Espere a que termine (GET /v1/exports) y pida la siguiente.
+    EXPORT_IN_PROGRESS = "export_in_progress"
+
+    # La exportación aún se genera (status processing) o falló (failed). Consulte GET /v1/exports/{id}; si falló, pídala otra vez.
+    EXPORT_NOT_READY = "export_not_ready"
+
+    # En producción, inventario avanzado, portal de proveedores, pedidos de venta y comprobación de gastos siguen el plan de la empresa, como en la app: vienen con Operaciones (se agrega a cualquier plan de pago; incluida en Corporativo). La contabilidad (/v1/accounting/…, salvo DIOT, cross_checks, vat_refund y fixed_assets) viene con Contabilidad (se agrega a Independiente, Emprendedor o Negocio; incluida en Despacho y Corporativo): sin ella, cambiar los libros responde este error, y leerlos solo funciona hasta el último mes en que la tuvo. En modo de pruebas están todos.
+    FEATURE_NOT_IN_PLAN = "feature_not_in_plan"
+
+    # El hallazgo ya no aplica: lo que lo causó cambió (status resolved). No hay nada que revisar.
+    FINDING_RESOLVED = "finding_resolved"
+
+    # Idempotency-Key es de 1 a 255 caracteres ASCII, sin acentos ni ñ: el id de su pedido o un UUID. Lo que timbra o prepara un pago pide 8 o más: el mensaje dice cuántos llegaron.
+    IDEMPOTENCY_KEY_INVALID = "idempotency_key_invalid"
+
+    # Lo que timbra exige el encabezado Idempotency-Key (8 a 255 caracteres, uno nuevo por comprobante). Así un reintento nunca timbra dos veces.
+    IDEMPOTENCY_KEY_MISSING = "idempotency_key_missing"
+
+    # Esa Idempotency-Key ya se usó en las últimas 24 horas con otra solicitud (otra ruta u otro cuerpo). Use una nueva para cada operación distinta.
+    IDEMPOTENCY_KEY_REUSED = "idempotency_key_reused"
+
+    # La cuenta no tiene timbres de producción: para timbrar, revisar RFC en las listas, consultar constancias, pedir descargas o traer declaraciones, opinión o buzón del SAT. Compre un paquete en Desarrolladores › Timbres y pagos. En pruebas nunca pasa. Para enterarse antes, escuche balance.low o active la recarga automática.
+    INSUFFICIENT_BALANCE = "insufficient_balance"
+
+    # Algo falló de nuestro lado. Repita la solicitud con la misma Idempotency-Key: nunca se timbra dos veces. Si sigue, escríbanos con el request_id.
+    INTERNAL_ERROR = "internal_error"
+
+    # La llave no es de ninguna cuenta: mal copiada, inventada o de antes de que guardáramos las llaves revocadas. Revise que la copió completa; sus llaves están en Desarrolladores › Llaves.
+    INVALID_API_KEY = "invalid_api_key"
+
+    # El cuerpo no es un objeto JSON válido.
+    INVALID_JSON = "invalid_json"
+
+    # La respuesta no se pudo leer (api_error): no es el JSON de la API, sino la página de un proxy o de un portal de la red. status dice qué contestó.
+    INVALID_RESPONSE = "invalid_response"
+
+    # Inventario no lo permite: el mensaje dice por qué (un lote que no es de ese producto, otro ajuste del mismo almacén en curso).
+    INVENTORY_REFUSED = "inventory_refused"
+
+    # La factura no cumple una regla del SAT que Fiscalisto revisa antes de mandarla al PAC (uso contra régimen, totales, complementos…). No se usó ningún timbre.
+    INVOICE_INVALID = "invoice_invalid"
+
+    # La factura es un borrador: todavía no tiene XML, PDF timbrado, correo ni cancelación. Timbrela con POST /v1/invoices/{id}/stamp.
+    INVOICE_IS_DRAFT = "invoice_is_draft"
+
+    # El acuse de cancelación existe cuando el SAT ya canceló la factura (status canceled). Con una cancelación en espera del cliente (pending), espere invoice.canceled.
+    INVOICE_NOT_CANCELED = "invoice_not_canceled"
+
+    # La factura ya está timbrada: no se edita con su cuerpo completo, no se borra (se cancela o se sustituye) y no hay nada que timbrar.
+    INVOICE_NOT_DRAFT = "invoice_not_draft"
+
+    # Solo una factura de ingreso PUE vigente se marca pagada o por cobrar; una PPD se paga con su complemento de pago (type P).
+    INVOICE_NOT_MARKABLE = "invoice_not_markable"
+
+    # La acción es para facturas timbradas (enviar, cancelar, sustituir).
+    INVOICE_NOT_STAMPED = "invoice_not_stamped"
+
+    # El PAC o el SAT no la aceptaron. sat_code trae su código (CFDI40xxx), message qué corregir y doc_url su explicación en [Rechazos del SAT](/docs/api/rechazos-del-sat). La factura queda como rejected; no se usó ningún timbre.
+    INVOICE_REJECTED = "invoice_rejected"
+
+    # La llave solo funciona desde algunas IP (Solo desde estas IP, en Desarrolladores › Llaves) y la solicitud llegó desde otra. El mensaje dice desde cuál.
+    IP_NOT_ALLOWED = "ip_not_allowed"
+
+    # El emisor está archivado: ya no timbra. Sus comprobantes se pueden consultar y cancelar.
+    ISSUER_ARCHIVED = "issuer_archived"
+
+    # Se crearon 500 emisores en 24 horas. Mañana puede crear más.
+    ISSUER_CREATION_LIMIT = "issuer_creation_limit"
+
+    # Ese RFC ya es un emisor de la cuenta en este modo.
+    ISSUER_EXISTS = "issuer_exists"
+
+    # El emisor no tiene equipo: el equipo es el de una empresa, en sus emisores propios (type own) y con una llave fk_live_. Un emisor conectado o uno de pruebas no tiene miembros.
+    ISSUER_HAS_NO_TEAM = "issuer_has_no_team"
+
+    # El emisor es una empresa de la app conectada a la cuenta (source empresa): con la API solo se usan su Portal de proveedores y, si alguien que puede los encendió, sus pagos a proveedores; o quien la conectó (o encendió sus pagos) ya no tiene en esa empresa el permiso que la ruta pide, o ya no tiene lo que esa empresa pide para entrar (verificación en dos pasos o llave de acceso).
+    ISSUER_LINKED_EMPRESA = "issuer_linked_empresa"
+
+    # No existe ese emisor en la cuenta (o es del otro modo).
+    ISSUER_MISSING = "issuer_missing"
+
+    # La llave no puede usar ese emisor.
+    ISSUER_NOT_ALLOWED = "issuer_not_allowed"
+
+    # El emisor aún no puede hacer eso: el mensaje dice qué le falta (su sello digital, CSD, o uno vigente al timbrar; su RFC con sus datos fiscales en viáticos). Súbalo y repita la solicitud con la misma Idempotency-Key.
+    ISSUER_NOT_READY = "issuer_not_ready"
+
+    # El emisor es un RFC de la propia empresa (Desarrolladores de la empresa): es emisor mientras la empresa lo tenga y no se archiva.
+    ISSUER_OWN_RFC = "issuer_own_rfc"
+
+    # La cuenta tiene varios emisores y la solicitud no dice cuál: mande issuer (iss_…).
+    ISSUER_REQUIRED = "issuer_required"
+
+    # La llave es de un entorno de prueba y la solicitud es de toda la cuenta (como crear o borrar entornos): use una llave de pruebas de la cuenta.
+    KEY_IN_SANDBOX = "key_in_sandbox"
+
+    # La llave es de solo lectura: puede hacer GET, validar RFC, revisar listas del SAT y calcular recibos de nómina, pero nada que timbre, cancele, envíe o cambie datos.
+    KEY_READ_ONLY = "key_read_only"
+
+    # La llave tiene permisos por recurso y no tiene el que pide la ruta: lectura para un GET (o un POST que solo revisa), escritura para lo que cambia algo. El mensaje dice qué recurso y qué permiso.
+    KEY_RESOURCE_DENIED = "key_resource_denied"
+
+    # La llave está limitada a algunos emisores y la solicitud toca otro (o crea uno nuevo, o usa algo de toda la cuenta como webhooks).
+    KEY_RESTRICTED = "key_restricted"
+
+    # El objeto es del otro modo: una llave fk_test_ solo ve lo de pruebas y una fk_live_ lo de producción.
+    LIVEMODE_MISMATCH = "livemode_mismatch"
+
+    # La ruta existe pero no con ese método (por ejemplo, PUT: la API usa POST para actualizar).
+    METHOD_NOT_ALLOWED = "method_not_allowed"
+
+    # Falta el encabezado Authorization: Bearer fk_test_… o fk_live_….
+    MISSING_API_KEY = "missing_api_key"
+
+    # En el plan Gratis, la API ya hizo sus solicitudes de producción de los últimos 30 días: 10,000 más 500 por cada timbre que usó. Con un plan de paga son 100,000 más 500 por timbre, y al pasarlas la API solo va más despacio (10 solicitudes cada 10 segundos, rate_limit). Use webhooks en vez de consultar seguido; para más, escriba a soporte@fiscalisto.com.
+    MONTHLY_ALLOWANCE = "monthly_allowance"
+
+    # Un campo tiene un valor que no se acepta (formato, catálogo del SAT, rango). param dice cuál y message cómo corregirlo.
+    PARAMETER_INVALID = "parameter_invalid"
+
+    # Falta un campo obligatorio. param dice cuál.
+    PARAMETER_MISSING = "parameter_missing"
+
+    # Mandó un campo o un parámetro de la URL que no existe (casi siempre un nombre mal escrito, como legalName en vez de legal_name, o ?statuss= en vez de ?status=). Nunca se ignora en silencio.
+    PARAMETER_UNKNOWN = "parameter_unknown"
+
+    # El pago no se puede preparar o cambiar así (una factura ya pagada o en otro pago, un proveedor sin cuenta aprobada, una regla que no deja pagar, un límite, o ya salió). El mensaje dice por qué, renglón por renglón.
+    PAYOUT_INVALID = "payout_invalid"
+
+    # El pago se preparó en la app: se cancela ahí.
+    PAYOUT_NOT_FROM_API = "payout_not_from_api"
+
+    # La empresa no deja que la API prepare pagos: se enciende en la app, en Pagos › Configurar pagos.
+    PAYOUTS_API_DISABLED = "payouts_api_disabled"
+
+    # El RFC del emisor no paga a proveedores con Fiscalisto: se conecta Fintoc en la app, en Pagos.
+    PAYOUTS_NOT_ENABLED = "payouts_not_enabled"
+
+    # El emisor pide aprobar la prenómina antes de timbrar, y este recibo no está en la prenómina aprobada del periodo con estos importes y fecha de pago (no se ha pedido, espera aprobación, se rechazó o el recibo cambió). No se timbró: pídala con POST /v1/payroll_approvals y espere a que una persona la apruebe en la app.
+    PAYROLL_APPROVAL_REQUIRED = "payroll_approval_required"
+
+    # Mandó el confirmation_token de una vista previa, pero el recibo que se calcularía ahora es otro (se timbró otro recibo del empleado ese mes, cambió su salario o se actualizaron las tablas). No se timbró: pida la vista previa otra vez y mande su token nuevo.
+    PAYROLL_CALCULATION_CHANGED = "payroll_calculation_changed"
+
+    # POST /v1/payroll_receipts calcula solo la nómina ordinaria (sueldo, ISR con el subsidio para el empleo y cuotas obreras del IMSS). El aguinaldo, la PTU y el finiquito o la liquidación los calcula Fiscalisto con POST /v1/payroll_receipts/extraordinary; pensiones, bonos y demás los calcula su sistema de nómina y se timbran con POST /v1/payroll_receipts/external. param dice qué campo lo pidió.
+    PAYROLL_CALCULATION_UNSUPPORTED = "payroll_calculation_unsupported"
+
+    # El recibo de nómina no se puede calcular o timbrar con esos datos (periodo, días, registro patronal del emisor…). En un recibo calculado por su sistema (/v1/payroll_receipts/external), errors trae todos los problemas, cada uno con su param, code (missing, not_allowed, invalid, catalog, totals_mismatch, rule) y message. No se usó ningún timbre.
+    PAYROLL_INVALID = "payroll_invalid"
+
+    # El empleado ya tiene un recibo ordinario cuyo periodo se cruza con este (invoice). Un pago adicional del periodo va como recibo extraordinario (type E); para corregir aquel, use replaces.
+    PAYROLL_PERIOD_OVERLAP = "payroll_period_overlap"
+
+    # El empleado ya tiene un recibo vigente de ese periodo (ordinario) o de esa corrida (payroll_run_id, extraordinario) con otros importes. invoice es ese recibo: corríjalo con replaces o cancélelo antes. Con los mismos importes se devuelve el mismo recibo, sin error.
+    PAYROLL_RECEIPT_EXISTS = "payroll_receipt_exists"
+
+    # replaces no es un recibo de nómina vigente del mismo emisor y del mismo empleado.
+    PAYROLL_REPLACEMENT_INVALID = "payroll_replacement_invalid"
+
+    # No se pudo dibujar el PDF de ese CFDI (su XML trae algo que el generador no lee). Descargue el XML: es el documento válido ante el SAT.
+    PDF_UNAVAILABLE = "pdf_unavailable"
+
+    # Ese mes de la contabilidad está cerrado: no se registra, corrige ni borra nada con fecha en él. Reábralo con POST /v1/accounting/closed_period si hay que corregirlo.
+    PERIOD_CLOSED = "period_closed"
+
+    # El ticket de compra no se puede guardar, corregir o pedir así (un archivo que no es foto ni PDF, un RFC o uso que no corresponde, una tienda que no factura con Fiscalisto, faltan datos fiscales del emisor…). El mensaje dice por qué.
+    PURCHASE_RECEIPT_INVALID = "purchase_receipt_invalid"
+
+    # La cotización no tiene los datos fiscales del cliente: agrégueselos con POST /v1/quotes/{id} (customer) o mándela con auto_invoice para que los dé al aceptarla.
+    QUOTE_CUSTOMER_MISSING = "quote_customer_missing"
+
+    # La cotización no se pudo guardar o ya no cambia (aceptada, rechazada o facturada), o no se puede mandar así. El mensaje dice por qué.
+    QUOTE_INVALID = "quote_invalid"
+
+    # La cotización ya se aceptó o se facturó: no se borra. Para cerrar una que no se aceptó, también puede retirarla (POST /v1/quotes/{id}/withdraw).
+    QUOTE_NOT_DELETABLE = "quote_not_deletable"
+
+    # La cotización se rechazó, se retiró o venció: no se factura. Si venció o se retiró, cámbiela (es una versión nueva) y vuelva a mandarla.
+    QUOTE_NOT_INVOICEABLE = "quote_not_invoiceable"
+
+    # La cotización nunca se envió, así que no se retira ni se marca rechazada: bórrela con DELETE /v1/quotes/{id}.
+    QUOTE_NOT_SENT = "quote_not_sent"
+
+    # Demasiadas solicitudes con la llave. Espere lo que dice Retry-After y reintente.
+    RATE_LIMIT = "rate_limit"
+
+    # La factura recurrente no se pudo guardar: el día, la hora, la zona o la factura no son válidos. El mensaje dice cuál.
+    RECURRING_INVALID = "recurring_invalid"
+
+    # El emisor ya tiene el máximo de facturas recurrentes activas (25 en pruebas, 5,000 en producción). Pause o borre las que ya no use.
+    RECURRING_LIMIT = "recurring_limit"
+
+    # Aún no toca timbrar la factura recurrente (409): su next_invoice_on es después de hoy. Para una factura antes de tiempo, use POST /v1/invoices.
+    RECURRING_NOT_DUE = "recurring_not_due"
+
+    # La factura recurrente está en pausa: reanúdela con active: true para timbrarla.
+    RECURRING_PAUSED = "recurring_paused"
+
+    # Ese emisor no presenta la declaración anual de persona moral del régimen general: es persona física, RESICO, no lucrativa o tiene otro régimen de ISR en Impuestos.
+    REGIME_NOT_APPLICABLE = "regime_not_applicable"
+
+    # Otra solicitud con la misma Idempotency-Key sigue en proceso, otra solicitud está cambiando el mismo objeto (dos actualizaciones del mismo cliente a la vez esperan su turno hasta 15 segundos), u otro comprobante que se timbra a la vez no terminó en unos segundos (otro recibo de nómina del mismo empleado, otro pago de la misma factura) (409, con Retry-After). Repítala en un momento con la misma llave: contestará lo mismo.
+    REQUEST_IN_PROGRESS = "request_in_progress"
+
+    # No existe un objeto con ese id (o es de otro emisor o del otro modo).
+    RESOURCE_MISSING = "resource_missing"
+
+    # La constancia de retenciones no cumple una regla del SAT. No se usó ningún timbre.
+    RETENTION_INVALID = "retention_invalid"
+
+    # Solo quien emitió la constancia puede cancelarla; esta la recibió el emisor.
+    RETENTION_NOT_ISSUED = "retention_not_issued"
+
+    # La acción es para constancias timbradas.
+    RETENTION_NOT_STAMPED = "retention_not_stamped"
+
+    # El PAC o el SAT no aceptaron la constancia; sat_code trae su código.
+    RETENTION_REJECTED = "retention_rejected"
+
+    # No existe esa ruta. Revise la dirección y la versión (/v1).
+    ROUTE_NOT_FOUND = "route_not_found"
+
+    # La regla no se puede guardar así: el mensaje dice por qué (una acción que no va con su trigger, como cost_center en una orden de compra; una etiqueta, etapa o centro de costo que no existe; un campo o un valor que no va con su operador; más de 200 reglas).
+    RULE_INVALID = "rule_invalid"
+
+    # El pedido está en borrador: confírmelo primero con POST /v1/sales_orders/{id}/confirm.
+    SALES_ORDER_DRAFT = "sales_order_draft"
+
+    # El pedido no se pudo guardar o no se puede hacer eso en su estado (por ejemplo, ya no queda nada por entregar o facturar, o está cancelado). El mensaje dice por qué.
+    SALES_ORDER_INVALID = "sales_order_invalid"
+
+    # Solo se borra un pedido en borrador; uno confirmado se cancela con POST /v1/sales_orders/{id}/cancel.
+    SALES_ORDER_NOT_DELETABLE = "sales_order_not_deletable"
+
+    # No se pudo crear el entorno de prueba: falta su nombre o la cuenta ya tiene 25 (borre uno que ya no use).
+    SANDBOX_INVALID = "sandbox_invalid"
+
+    # Solo se marca como pagada una factura de ingreso recibida y vigente: una PPD que siga por pagar, o una PUE para anotar de dónde salió el dinero. El mensaje dice por qué esta no.
+    SAT_INVOICE_NOT_MARKABLE = "sat_invoice_not_markable"
+
+    # Las declaraciones de ese emisor se consultaron en el SAT hace menos de 10 minutos (cada consulta entra al SAT con su e.firma). Retry-After dice cuántos segundos faltan; lo que ya trajo está en GET /v1/sat_declarations.
+    SAT_REFRESH_TOO_SOON = "sat_refresh_too_soon"
+
+    # El SAT rechazó la solicitud de descarga. El mensaje trae su motivo, por ejemplo que ya se pidió el mismo periodo con los mismos filtros demasiadas veces (el SAT pone un límite de por vida).
+    SAT_REQUEST_REJECTED = "sat_request_rejected"
+
+    # El SAT no contestó o no dejó entrar con la e.firma del emisor. El mensaje trae lo que dijo; no se usó ningún timbre. Reintente en 10 minutos.
+    SAT_UNAVAILABLE = "sat_unavailable"
+
+    # La búsqueda de query no se entiende: un campo por el que no se busca, un operador que no va con ese campo, una comilla sin cerrar, AND y OR juntos o más de 10 cláusulas. El mensaje dice dónde.
+    SEARCH_QUERY_INVALID = "search_query_invalid"
+
+    # Ese cambio ya no se puede deshacer: ya se deshizo, el ajuste cambió otra vez después (deshaga primero el más reciente) o ya no tiene el valor que dejó ese cambio.
+    SETTING_CHANGE_NOT_UNDOABLE = "setting_change_not_undoable"
+
+    # Demasiados timbres seguidos del mismo emisor. Espere lo que dice Retry-After; para muchas facturas use POST /v1/invoice_batches, y para una nómina POST /v1/payroll_batches.
+    STAMP_RATE_LIMIT = "stamp_rate_limit"
+
+    # Esa tienda ya está conectada a este emisor.
+    STORE_ALREADY_CONNECTED = "store_already_connected"
+
+    # La tienda no aceptó la conexión o no respondió como se esperaba (llaves equivocadas, permisos read_orders/write_orders que faltan, una tienda que no vende en pesos). El mensaje dice qué contestó.
+    STORE_CONNECTION_FAILED = "store_connection_failed"
+
+    # La tienda se desconectó: conéctela otra vez con POST /v1/store_connections.
+    STORE_DISCONNECTED = "store_disconnected"
+
+    # El vendedor aún no autoriza la conexión en authorize_url.
+    STORE_NOT_AUTHORIZED = "store_not_authorized"
+
+    # Esa plataforma aún no está disponible en Fiscalisto.
+    STORE_PLATFORM_UNAVAILABLE = "store_platform_unavailable"
+
+    # Los complementos de pago y las notas de crédito no se sustituyen: se cancelan y se emite otro. Un recibo de nómina se sustituye con POST /v1/payroll_receipts/external y replaces.
+    SUBSTITUTION_UNSUPPORTED = "substitution_unsupported"
+
+    # La factura del proveedor no admite eso en su estado (por ejemplo, programar una que no está aprobada, una fecha de pago pasada o marcar pagada una ya pagada), o el SAT la reporta cancelada. El mensaje dice por qué.
+    SUPPLIER_INVOICE_INVALID = "supplier_invoice_invalid"
+
+    # Ya hay una etiqueta con ese nombre (sin importar mayúsculas ni acentos): el mensaje trae su id (tag_…).
+    TAG_EXISTS = "tag_exists"
+
+    # La empresa llegó a 200 etiquetas: borre las que ya no use.
+    TAG_LIMIT = "tag_limit"
+
+    # El cambio da, quita o toca un permiso delicado (equipo, credenciales, seguridad o plan), o nombra a un propietario: pide confirmar la identidad de quien lo hace, y eso se hace en la app, en Ajustes › Miembros o Ajustes › Roles.
+    TEAM_CHANGE_REQUIRES_APP = "team_change_requires_app"
+
+    # El cambio no se puede: la persona ya es miembro, quedaría la empresa sin propietario, ya hay un rol con ese nombre, el rol lo tiene alguien, o se mandaron demasiadas invitaciones hoy. El mensaje dice cuál.
+    TEAM_INVALID = "team_invalid"
+
+    # La llave actúa como la persona que la creó, con su acceso en la empresa: le falta el permiso para esto, o lo que pide daría más de lo que ella tiene, o ya no es miembro.
+    TEAM_PERMISSION_DENIED = "team_permission_denied"
+
+    # El plan de la empresa ya tiene todos sus usuarios (miembros más invitaciones pendientes). Cambie de plan en Ajustes › Plan y pagos o quite a alguien.
+    TEAM_SEAT_LIMIT = "team_seat_limit"
+
+    # El reloj se está adelantando en otra solicitud (409, con Retry-After). Espere a test_clock.ready y repita.
+    TEST_CLOCK_ADVANCING = "test_clock_advancing"
+
+    # El emisor ya tiene un reloj de prueba: adelántelo, o bórrelo para volver a la hora real.
+    TEST_CLOCK_EXISTS = "test_clock_exists"
+
+    # frozen_time no sirve: no es una fecha y hora ISO 8601, es anterior a la hora del reloj (solo avanza) o va más de dos años adelante de la hora real.
+    TEST_CLOCK_INVALID = "test_clock_invalid"
+
+    # El emisor no tiene reloj de prueba: créelo con POST /v1/issuers/{id}/test_clock.
+    TEST_CLOCK_MISSING = "test_clock_missing"
+
+    # Los relojes de prueba son de emisores de prueba: use su llave fk_test_ y un emisor de pruebas.
+    TEST_CLOCK_UNSUPPORTED = "test_clock_unsupported"
+
+    # Esto solo existe en pruebas (como reiniciar los datos de prueba): use su llave fk_test_.
+    TEST_MODE_ONLY = "test_mode_only"
+
+    # Ese folio ya está registrado para el emisor con otro total o con otra propina (409). Con el mismo total se contesta el ticket que ya existe.
+    TICKET_FOLIO_TAKEN = "ticket_folio_taken"
+
+    # El ticket no se pudo registrar: el folio trae caracteres no válidos, la fecha de venta está en el futuro o es de hace más de un año, el producto ya no está en el catálogo… El mensaje dice cuál.
+    TICKET_INVALID = "ticket_invalid"
+
+    # El ticket ya se facturó o entró en una factura global: no se puede cancelar.
+    TICKET_NOT_PENDING = "ticket_not_pending"
+
+    # La API no contestó a tiempo (connection_error). Con lo que timbra, repita con la misma Idempotency-Key para saber si se timbró.
+    TIMEOUT = "timeout"
+
+    # Mande el cuerpo con Content-Type: application/json.
+    UNSUPPORTED_CONTENT_TYPE = "unsupported_content_type"
+
+    # Todos los códigos.
+    ALL = [
+      ACCOUNT_MISSING,
+      ACCOUNT_SUSPENDED,
+      ANSWER_EXPIRED,
+      ANSWER_MISSING,
+      ANSWER_NOT_READY,
+      ANSWER_RUNNING,
+      API_KEY_CREATION_LIMIT,
+      API_KEY_ESCALATION,
+      API_KEY_EXPIRED,
+      API_KEY_REJECTED,
+      API_KEY_REVOKED,
+      API_KEYS_PERMISSION_REQUIRED,
+      API_VERSION_INVALID,
+      ASSET_ALREADY_DISPOSED,
+      ASSET_FROM_CFDI,
+      ASSET_NOT_DISPOSED,
+      ATTENDANCE_INVALID,
+      BANK_MOVEMENT_NOT_BOOKABLE,
+      BANK_MOVEMENT_NOT_POSTED,
+      BANK_MOVEMENT_POSTED,
+      BANK_TRANSACTION_INVALID,
+      BATCH_INVALID,
+      BODY_TOO_LARGE,
+      BRANCH_HAS_INVOICES,
+      BROWSER_NOT_SUPPORTED,
+      CALCULATION_MODE_AMBIGUOUS,
+      CANCELLATION_FAILED,
+      CANCELLATION_TOO_EARLY,
+      CATALOG_UNAVAILABLE,
+      CERTIFICATE_INVALID,
+      CERTIFICATE_REQUIRED,
+      CONNECTION_FAILED,
+      COST_CENTER_EXISTS,
+      COST_CENTER_LIMIT,
+      CUSTOMER_EXISTS,
+      CUSTOMER_GENERIC_TAX_ID,
+      DAILY_LIMIT,
+      DATA_REQUEST_COMPLETED,
+      DIOT_EMPTY,
+      DRAFT_AWAITING_APPROVAL,
+      DRAFT_INCOMPLETE,
+      EFIRMA_INVALID,
+      EFIRMA_REQUIRED,
+      EMAIL_FAILED,
+      ENDPOINT_DISABLED,
+      ENDPOINT_EXISTS,
+      ENDPOINT_LIMIT,
+      ENTRY_UNBALANCED,
+      EXPAND_INVALID,
+      EXPENSE_REPORT_INVALID,
+      EXPORT_EMPTY,
+      EXPORT_EXPIRED,
+      EXPORT_IN_PROGRESS,
+      EXPORT_NOT_READY,
+      FEATURE_NOT_IN_PLAN,
+      FINDING_RESOLVED,
+      IDEMPOTENCY_KEY_INVALID,
+      IDEMPOTENCY_KEY_MISSING,
+      IDEMPOTENCY_KEY_REUSED,
+      INSUFFICIENT_BALANCE,
+      INTERNAL_ERROR,
+      INVALID_API_KEY,
+      INVALID_JSON,
+      INVALID_RESPONSE,
+      INVENTORY_REFUSED,
+      INVOICE_INVALID,
+      INVOICE_IS_DRAFT,
+      INVOICE_NOT_CANCELED,
+      INVOICE_NOT_DRAFT,
+      INVOICE_NOT_MARKABLE,
+      INVOICE_NOT_STAMPED,
+      INVOICE_REJECTED,
+      IP_NOT_ALLOWED,
+      ISSUER_ARCHIVED,
+      ISSUER_CREATION_LIMIT,
+      ISSUER_EXISTS,
+      ISSUER_HAS_NO_TEAM,
+      ISSUER_LINKED_EMPRESA,
+      ISSUER_MISSING,
+      ISSUER_NOT_ALLOWED,
+      ISSUER_NOT_READY,
+      ISSUER_OWN_RFC,
+      ISSUER_REQUIRED,
+      KEY_IN_SANDBOX,
+      KEY_READ_ONLY,
+      KEY_RESOURCE_DENIED,
+      KEY_RESTRICTED,
+      LIVEMODE_MISMATCH,
+      METHOD_NOT_ALLOWED,
+      MISSING_API_KEY,
+      MONTHLY_ALLOWANCE,
+      PARAMETER_INVALID,
+      PARAMETER_MISSING,
+      PARAMETER_UNKNOWN,
+      PAYOUT_INVALID,
+      PAYOUT_NOT_FROM_API,
+      PAYOUTS_API_DISABLED,
+      PAYOUTS_NOT_ENABLED,
+      PAYROLL_APPROVAL_REQUIRED,
+      PAYROLL_CALCULATION_CHANGED,
+      PAYROLL_CALCULATION_UNSUPPORTED,
+      PAYROLL_INVALID,
+      PAYROLL_PERIOD_OVERLAP,
+      PAYROLL_RECEIPT_EXISTS,
+      PAYROLL_REPLACEMENT_INVALID,
+      PDF_UNAVAILABLE,
+      PERIOD_CLOSED,
+      PURCHASE_RECEIPT_INVALID,
+      QUOTE_CUSTOMER_MISSING,
+      QUOTE_INVALID,
+      QUOTE_NOT_DELETABLE,
+      QUOTE_NOT_INVOICEABLE,
+      QUOTE_NOT_SENT,
+      RATE_LIMIT,
+      RECURRING_INVALID,
+      RECURRING_LIMIT,
+      RECURRING_NOT_DUE,
+      RECURRING_PAUSED,
+      REGIME_NOT_APPLICABLE,
+      REQUEST_IN_PROGRESS,
+      RESOURCE_MISSING,
+      RETENTION_INVALID,
+      RETENTION_NOT_ISSUED,
+      RETENTION_NOT_STAMPED,
+      RETENTION_REJECTED,
+      ROUTE_NOT_FOUND,
+      RULE_INVALID,
+      SALES_ORDER_DRAFT,
+      SALES_ORDER_INVALID,
+      SALES_ORDER_NOT_DELETABLE,
+      SANDBOX_INVALID,
+      SAT_INVOICE_NOT_MARKABLE,
+      SAT_REFRESH_TOO_SOON,
+      SAT_REQUEST_REJECTED,
+      SAT_UNAVAILABLE,
+      SEARCH_QUERY_INVALID,
+      SETTING_CHANGE_NOT_UNDOABLE,
+      STAMP_RATE_LIMIT,
+      STORE_ALREADY_CONNECTED,
+      STORE_CONNECTION_FAILED,
+      STORE_DISCONNECTED,
+      STORE_NOT_AUTHORIZED,
+      STORE_PLATFORM_UNAVAILABLE,
+      SUBSTITUTION_UNSUPPORTED,
+      SUPPLIER_INVOICE_INVALID,
+      TAG_EXISTS,
+      TAG_LIMIT,
+      TEAM_CHANGE_REQUIRES_APP,
+      TEAM_INVALID,
+      TEAM_PERMISSION_DENIED,
+      TEAM_SEAT_LIMIT,
+      TEST_CLOCK_ADVANCING,
+      TEST_CLOCK_EXISTS,
+      TEST_CLOCK_INVALID,
+      TEST_CLOCK_MISSING,
+      TEST_CLOCK_UNSUPPORTED,
+      TEST_MODE_ONLY,
+      TICKET_FOLIO_TAKEN,
+      TICKET_INVALID,
+      TICKET_NOT_PENDING,
+      TIMEOUT,
+      UNSUPPORTED_CONTENT_TYPE
+    ].freeze
+  end
+end

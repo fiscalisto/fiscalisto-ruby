@@ -1,0 +1,28 @@
+# Publishes the gem to RubyGems when a version tag (v0.1.1) arrives from Fiscalisto's
+# repository (scripts/sdk-release.sh), after its tests. Trusted publishing: RubyGems checks this
+# workflow's identity (OIDC), so there's no API key.
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  rubygems:
+    runs-on: ubuntu-latest
+    environment: rubygems
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: The tag is the gem's version
+        run: grep -q "VERSION = \"${GITHUB_REF_NAME#v}\"" lib/fiscalisto/version.rb
+      - run: ruby -w -Ilib -Itest test/test_fiscalisto.rb
+      - uses: rubygems/configure-rubygems-credentials@v2.2.0
+        with:
+          # Immutable RubyGems owner ID of the `fiscalisto` account (required for the first push via pending trusted publisher).
+          owner: "256935"
+      - run: gem build fiscalisto.gemspec && gem push "fiscalisto-${GITHUB_REF_NAME#v}.gem"
